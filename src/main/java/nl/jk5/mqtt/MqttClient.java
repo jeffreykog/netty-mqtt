@@ -5,12 +5,8 @@ import com.google.common.collect.ImmutableSet;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.collection.IntObjectHashMap;
@@ -24,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Represents an MqttClient connected to a single MQTT server. Will try to keep the connection going at all times
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public final class MqttClient {
 
     private final Set<String> serverSubscribtions = new HashSet<>();
@@ -79,26 +76,16 @@ public final class MqttClient {
      */
     public Future<MqttConnectResult> connect(String host, int port){
         if(this.eventLoop == null){
-            if(Epoll.isAvailable()){
-                this.eventLoop = new EpollEventLoopGroup();
-            }else{
-                this.eventLoop = new NioEventLoopGroup();
-            }
+            this.eventLoop = new NioEventLoopGroup();
         }
-        Promise<MqttConnectResult> connectFuture = new DefaultPromise<MqttConnectResult>(this.eventLoop.next());
+        Promise<MqttConnectResult> connectFuture = new DefaultPromise<>(this.eventLoop.next());
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(this.eventLoop);
-        if(this.eventLoop instanceof EpollEventLoopGroup){
-            bootstrap.channel(EpollSocketChannel.class);
-        }else if(this.eventLoop instanceof NioEventLoopGroup){
-            bootstrap.channel(NioSocketChannel.class);
-        }
+        bootstrap.channel(clientConfig.getChannelClass());
         bootstrap.remoteAddress(host, port);
         bootstrap.handler(new MqttChannelInitializer(connectFuture));
         ChannelFuture future = bootstrap.connect();
-        future.addListener((ChannelFutureListener) f -> {
-            MqttClient.this.channel = f.channel();
-        });
+        future.addListener((ChannelFutureListener) f -> MqttClient.this.channel = f.channel());
 
         return connectFuture;
     }
@@ -112,7 +99,8 @@ public final class MqttClient {
     }
 
     /**
-     * By default we use the netty {@link EpollEventLoopGroup} if available on the platform, or the {@link NioEventLoopGroup} if not.
+     * By default we use the netty {@link NioEventLoopGroup}.
+     * If you change the EventLoopGroup to another type, make sure to change the {@link Channel} class using {@link MqttClientConfig#setChannelClass(Class)}
      * If you want to force the MqttClient to use another {@link EventLoopGroup}, call this function before calling {@link #connect(String, int)}
      *
      * @param eventLoop The new eventloop to use

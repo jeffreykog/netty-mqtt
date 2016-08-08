@@ -6,7 +6,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.util.concurrent.Promise;
-import org.apache.logging.log4j.LogManager;
 
 final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
@@ -20,7 +19,6 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MqttMessage msg) throws Exception {
-        LogManager.getLogger().info(msg); //TODO: remove this
         switch (msg.fixedHeader().messageType()){
             case CONNACK:
                 handleConack(ctx.channel(), (MqttConnAckMessage) msg);

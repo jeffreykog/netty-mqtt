@@ -3,6 +3,7 @@ package nl.jk5.mqtt;
 import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public final class MqttConnectResult {
 
     private final boolean success;

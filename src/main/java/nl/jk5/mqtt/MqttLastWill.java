@@ -2,6 +2,7 @@ package nl.jk5.mqtt;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 
+@SuppressWarnings({"WeakerAccess", "unused", "SimplifiableIfStatement", "StringBufferReplaceableByString"})
 public final class MqttLastWill {
 
     private final String topic;
@@ -127,7 +128,7 @@ public final class MqttLastWill {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("MqttLastWill{");
+        final StringBuilder sb = new StringBuilder("MqttLastWill{");
         sb.append("topic='").append(topic).append('\'');
         sb.append(", message='").append(message).append('\'');
         sb.append(", retain=").append(retain);

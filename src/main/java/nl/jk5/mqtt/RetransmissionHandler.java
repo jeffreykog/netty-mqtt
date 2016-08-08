@@ -15,7 +15,7 @@ final class RetransmissionHandler<T extends MqttMessage> {
     private BiConsumer<MqttFixedHeader, T> handler;
     private T originalMessage;
 
-    public void start(EventLoop eventLoop){
+    void start(EventLoop eventLoop){
         if(eventLoop == null){
             throw new NullPointerException("eventLoop");
         }
@@ -35,17 +35,17 @@ final class RetransmissionHandler<T extends MqttMessage> {
         }, timeout, TimeUnit.SECONDS);
     }
 
-    public void stop(){
+    void stop(){
         if(this.timer != null){
             this.timer.cancel(true);
         }
     }
 
-    public void setHandle(BiConsumer<MqttFixedHeader, T> runnable) {
+    void setHandle(BiConsumer<MqttFixedHeader, T> runnable) {
         this.handler = runnable;
     }
 
-    public void setOriginalMessage(T originalMessage) {
+    void setOriginalMessage(T originalMessage) {
         this.originalMessage = originalMessage;
     }
 }

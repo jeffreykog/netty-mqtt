@@ -11,24 +11,23 @@ final class MqttIncomingQos2Publish {
 
     private final RetransmissionHandler<MqttMessage> retransmissionHandler = new RetransmissionHandler<>();
 
-    public MqttIncomingQos2Publish(MqttPublishMessage incomingPublish, MqttMessage originalMessage) {
+    MqttIncomingQos2Publish(MqttPublishMessage incomingPublish, MqttMessage originalMessage) {
         this.incomingPublish = incomingPublish;
 
         this.retransmissionHandler.setOriginalMessage(originalMessage);
     }
 
-    public MqttPublishMessage getIncomingPublish() {
+    MqttPublishMessage getIncomingPublish() {
         return incomingPublish;
     }
 
-    public void startPubrecRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
-        this.retransmissionHandler.setHandle((fixedHeader, originalMessage) -> {
-            sendPacket.accept(new MqttMessage(fixedHeader, originalMessage.variableHeader()));
-        });
+    void startPubrecRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
+        this.retransmissionHandler.setHandle((fixedHeader, originalMessage) ->
+                sendPacket.accept(new MqttMessage(fixedHeader, originalMessage.variableHeader())));
         this.retransmissionHandler.start(eventLoop);
     }
 
-    public void onPubrelReceived() {
+    void onPubrelReceived() {
         this.retransmissionHandler.stop();
     }
 }

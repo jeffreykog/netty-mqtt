@@ -31,9 +31,9 @@ final class MqttPingHandler extends ChannelInboundHandlerAdapter {
         }
         MqttMessage message = (MqttMessage) msg;
         if(message.fixedHeader().messageType() == MqttMessageType.PINGREQ){
-            this.handlePingReq(ctx);
+            this.handlePingReq(ctx.channel());
         } else if(message.fixedHeader().messageType() == MqttMessageType.PINGRESP){
-            this.handlePingResp(ctx);
+            this.handlePingResp();
         }else{
             ctx.fireChannelRead(msg);
         }
@@ -68,12 +68,12 @@ final class MqttPingHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void handlePingReq(ChannelHandlerContext ctx){
+    private void handlePingReq(Channel channel){
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PINGRESP, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        ctx.channel().writeAndFlush(new MqttMessage(fixedHeader));
+        channel.writeAndFlush(new MqttMessage(fixedHeader));
     }
 
-    private void handlePingResp(ChannelHandlerContext ctx){
+    private void handlePingResp(){
         if(this.pingRespTimeout != null && !this.pingRespTimeout.isCancelled() && !this.pingRespTimeout.isDone()){
             this.pingRespTimeout.cancel(true);
             this.pingRespTimeout = null;

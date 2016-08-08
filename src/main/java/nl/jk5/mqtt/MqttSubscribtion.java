@@ -1,21 +1,18 @@
 package nl.jk5.mqtt;
 
-import javax.annotation.Nonnull;
 import java.util.regex.Pattern;
 
 final class MqttSubscribtion {
 
-    @Nonnull
     private final String topic;
     private final Pattern topicRegex;
-
-    @Nonnull
     private final MqttHandler handler;
 
     private final boolean once;
+
     private boolean called;
 
-    public MqttSubscribtion(@Nonnull String topic, @Nonnull MqttHandler handler, boolean once) {
+    MqttSubscribtion(String topic, MqttHandler handler, boolean once) {
         if(topic == null){
             throw new NullPointerException("topic");
         }
@@ -28,26 +25,23 @@ final class MqttSubscribtion {
         this.topicRegex = Pattern.compile(topic.replace("+", "[^/]+").replace("#", ".+") + "$");
     }
 
-    @Nonnull
-    public String getTopic() {
+    String getTopic() {
         return topic;
     }
 
-    @Nonnull
     public MqttHandler getHandler() {
         return handler;
     }
 
-    @Nonnull
-    public boolean isOnce() {
+    boolean isOnce() {
         return once;
     }
 
-    public boolean isCalled() {
+    boolean isCalled() {
         return called;
     }
 
-    public boolean matches(String topic){
+    boolean matches(String topic){
         return this.topicRegex.matcher(topic).matches();
     }
 
@@ -58,10 +52,7 @@ final class MqttSubscribtion {
 
         MqttSubscribtion that = (MqttSubscribtion) o;
 
-        if (once != that.once) return false;
-        if (!topic.equals(that.topic)) return false;
-        return handler.equals(that.handler);
-
+        return once == that.once && topic.equals(that.topic) && handler.equals(that.handler);
     }
 
     @Override
@@ -72,7 +63,7 @@ final class MqttSubscribtion {
         return result;
     }
 
-    public void setCalled(boolean called) {
+    void setCalled(boolean called) {
         this.called = called;
     }
 }

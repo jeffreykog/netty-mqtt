@@ -1,11 +1,14 @@
 package nl.jk5.mqtt;
 
+import io.netty.channel.Channel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.mqtt.MqttVersion;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Random;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public final class MqttClientConfig {
 
     private final String randomClientId;
@@ -17,6 +20,7 @@ public final class MqttClientConfig {
     @Nullable private String password = null;
     private boolean cleanSession = false;
     @Nullable private MqttLastWill lastWill;
+    private Class<? extends Channel> channelClass = NioSocketChannel.class;
 
     public MqttClientConfig() {
         Random random = new Random();
@@ -64,6 +68,7 @@ public final class MqttClientConfig {
         this.protocolVersion = protocolVersion;
     }
 
+    @Nullable
     public String getUsername() {
         return username;
     }
@@ -72,6 +77,7 @@ public final class MqttClientConfig {
         this.username = username;
     }
 
+    @Nullable
     public String getPassword() {
         return password;
     }
@@ -95,5 +101,13 @@ public final class MqttClientConfig {
 
     public void setLastWill(@Nullable MqttLastWill lastWill) {
         this.lastWill = lastWill;
+    }
+
+    public Class<? extends Channel> getChannelClass() {
+        return channelClass;
+    }
+
+    public void setChannelClass(Class<? extends Channel> channelClass) {
+        this.channelClass = channelClass;
     }
 }
