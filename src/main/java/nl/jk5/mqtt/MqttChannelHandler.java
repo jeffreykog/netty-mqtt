@@ -166,11 +166,15 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
             case EXACTLY_ONCE:
                 if(message.variableHeader().messageId() != -1){
-                    this.client.getQos2PendingIncomingPublishes().put(message.variableHeader().messageId(), message);
-                    //TODO: RETRANSMIT: keep spamming PUBREC until we receive PUBREL
                     MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, false, MqttQoS.AT_MOST_ONCE, false, 0);
                     MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
-                    this.sendAndFlushPacket(new MqttMessage(fixedHeader, variableHeader));
+                    MqttMessage pubrecMessage = new MqttMessage(fixedHeader, variableHeader);
+
+                    MqttIncomingQos2Publish incomingQos2Publish = new MqttIncomingQos2Publish(message, pubrecMessage);
+                    this.client.getQos2PendingIncomingPublishes().put(message.variableHeader().messageId(), incomingQos2Publish);
+                    incomingQos2Publish.startPubrelRetransmitTimer(this.client.getEventLoop().next(), this.client::sendAndFlushPacket);
+
+                    this.sendAndFlushPacket(pubrecMessage);
                 }
                 break;
         }
@@ -186,14 +190,15 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         this.client.getPendingServerUnsubscribes().remove(message.variableHeader().messageId());
     }
 
-    //TODO: RETRANSMIT: retry sending the packet untill we receive an PUBACK
+    //TODO: RETRANSMIT PUBLISH: retry sending the packet untill we receive an PUBACK
     private void handlePuback(ChannelHandlerContext ctx, MqttPubAckMessage message){
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(message.variableHeader().messageId());
         pendingPublish.getFuture().setSuccess(null);
         this.client.getPendingPublishes().remove(message.variableHeader().messageId());
     }
 
-    //TODO: RETRANSMIT: retry sending the packet untill we receive an PUBREC
+    //TODO: RETRANSMIT PUBREL: retry sending the packet untill we receive an PUBREC
+    //TODO: RETRANSMIT PUBREL: mosquitto always sends dup=false
     private void handlePubrec(ChannelHandlerContext ctx, MqttMessage message){
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREL, false, MqttQoS.AT_LEAST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) message.variableHeader();
@@ -202,9 +207,10 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
     private void handlePubrel(ChannelHandlerContext ctx, MqttMessage message){
         if(this.client.getQos2PendingIncomingPublishes().containsKey(((MqttMessageIdVariableHeader) message.variableHeader()).messageId())){
-            MqttPublishMessage msg = this.client.getQos2PendingIncomingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
-            this.invokeHandlersForIncomingPublish(msg);
-            this.client.getQos2PendingIncomingPublishes().remove(msg.variableHeader().messageId());
+            MqttIncomingQos2Publish incomingQos2Publish = this.client.getQos2PendingIncomingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
+            this.invokeHandlersForIncomingPublish(incomingQos2Publish.getMessage());
+            incomingQos2Publish.onPubrelReceived();
+            this.client.getQos2PendingIncomingPublishes().remove(incomingQos2Publish.getMessage().variableHeader().messageId());
         }
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBCOMP, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());

@@ -25,7 +25,7 @@ public final class MqttClient {
 
     private final Set<String> serverSubscribtions = new HashSet<>();
     private final IntObjectHashMap<MqttPendingUnsubscribtion> pendingServerUnsubscribes = new IntObjectHashMap<>();
-    private final IntObjectHashMap<MqttPublishMessage> qos2PendingIncomingPublishes = new IntObjectHashMap<>();
+    private final IntObjectHashMap<MqttIncomingQos2Publish> qos2PendingIncomingPublishes = new IntObjectHashMap<>();
     private final IntObjectHashMap<MqttPendingPublish> pendingPublishes = new IntObjectHashMap<>();
     private final HashMultimap<String, MqttSubscribtion> subscriptions = HashMultimap.create();
     private final IntObjectHashMap<MqttPendingSubscribtion> pendingSubscribtions = new IntObjectHashMap<>();
@@ -212,7 +212,7 @@ public final class MqttClient {
 
     void checkSubscribtions(String topic, Promise<Void> promise){
         if(!(this.subscriptions.containsKey(topic) && this.subscriptions.get(topic).size() != 0) && this.serverSubscribtions.contains(topic)){
-            //TODO: RETRANSMIT: retry sending when no ACK
+            //TODO: RETRANSMIT UNSUBSCRIBE: retry sending when no ACK
             MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBSCRIBE, false, MqttQoS.AT_LEAST_ONCE, false, 0);
             MqttMessageIdVariableHeader variableHeader = getNewMessageId();
             MqttUnsubscribePayload payload = new MqttUnsubscribePayload(Collections.singletonList(topic));
@@ -256,7 +256,7 @@ public final class MqttClient {
         return clientConfig;
     }
 
-    IntObjectHashMap<MqttPublishMessage> getQos2PendingIncomingPublishes() {
+    IntObjectHashMap<MqttIncomingQos2Publish> getQos2PendingIncomingPublishes() {
         return qos2PendingIncomingPublishes;
     }
 
