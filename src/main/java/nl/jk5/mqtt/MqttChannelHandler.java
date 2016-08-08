@@ -172,7 +172,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
                     MqttIncomingQos2Publish incomingQos2Publish = new MqttIncomingQos2Publish(message, pubrecMessage);
                     this.client.getQos2PendingIncomingPublishes().put(message.variableHeader().messageId(), incomingQos2Publish);
-                    incomingQos2Publish.startPubrelRetransmitTimer(this.client.getEventLoop().next(), this.client::sendAndFlushPacket);
+                    incomingQos2Publish.startPubrecRetransmitTimer(this.client.getEventLoop().next(), this.client::sendAndFlushPacket);
 
                     this.sendAndFlushPacket(pubrecMessage);
                 }
@@ -198,7 +198,6 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
     }
 
     //TODO: RETRANSMIT PUBREL: retry sending the packet untill we receive an PUBREC
-    //TODO: RETRANSMIT PUBREL: mosquitto always sends dup=false
     private void handlePubrec(ChannelHandlerContext ctx, MqttMessage message){
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREL, false, MqttQoS.AT_LEAST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) message.variableHeader();

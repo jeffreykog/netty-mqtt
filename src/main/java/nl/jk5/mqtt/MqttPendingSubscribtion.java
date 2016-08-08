@@ -87,6 +87,7 @@ final class MqttPendingSubscribtion {
                 MqttFixedHeader fixedHeader1 = new MqttFixedHeader(MqttMessageType.SUBSCRIBE, true, MqttQoS.AT_LEAST_ONCE, false, 0);
                 MqttSubscribeMessage msg2 = new MqttSubscribeMessage(fixedHeader1, this.getSubscribeMessage().variableHeader(), this.getSubscribeMessage().payload());
                 sendPacket.accept(msg2);
+                startRetransmitTimer(eventLoop, sendPacket);
             }, this.getRetransmitTimeout(), TimeUnit.SECONDS));
         }
     }

@@ -178,3 +178,93 @@
 [15:29:07] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.linkCapacity: 16
 [15:29:07] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.buffer.bytebuf.checkAccessible: true
 [15:29:07] [epollEventLoopGroup-2-1/DEBUG]: Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@edd83ca
+[15:32:47] [main/DEBUG]: Using SLF4J as the default logging framework
+[15:32:47] [main/DEBUG]: java.nio.Buffer.address: available
+[15:32:47] [main/DEBUG]: sun.misc.Unsafe.theUnsafe: available
+[15:32:47] [main/DEBUG]: sun.misc.Unsafe.copyMemory: available
+[15:32:47] [main/DEBUG]: java.nio.Bits.unaligned: true
+[15:32:47] [main/DEBUG]: java.nio.DirectByteBuffer.<init>(long, int): available
+[15:32:47] [main/DEBUG]: java.nio.ByteBuffer.cleaner(): available
+[15:32:47] [main/DEBUG]: Java version: 8
+[15:32:47] [main/DEBUG]: -Dio.netty.noUnsafe: false
+[15:32:47] [main/DEBUG]: sun.misc.Unsafe: available
+[15:32:47] [main/DEBUG]: -Dio.netty.noJavassist: false
+[15:32:47] [main/DEBUG]: Javassist: unavailable
+[15:32:47] [main/DEBUG]: You don't have Javassist in your class path or you don't have enough permission to load dynamically generated classes.  Please check the configuration for better performance.
+[15:32:47] [main/DEBUG]: -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+[15:32:47] [main/DEBUG]: -Dio.netty.bitMode: 64 (sun.arch.data.model)
+[15:32:47] [main/DEBUG]: -Dio.netty.noPreferDirect: false
+[15:32:47] [main/DEBUG]: io.netty.maxDirectMemory: 3707764736 bytes
+[15:32:47] [main/DEBUG]: -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+[15:32:47] [main/DEBUG]: -Dio.netty.native.workdir: /tmp (io.netty.tmpdir)
+[15:32:47] [main/DEBUG]: Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)
+[15:32:47] [main/DEBUG]: /proc/sys/net/core/somaxconn: 128
+[15:32:47] [main/DEBUG]: -Dio.netty.eventLoopThreads: 16
+[15:32:47] [main/DEBUG]: -Dio.netty.processId: 1063 (auto-detected)
+[15:32:47] [main/DEBUG]: -Dio.netty.machineId: fc:aa:14:ff:fe:cb:0c:b5 (auto-detected)
+[15:32:47] [main/DEBUG]: -Dio.netty.initialSeedUniquifier: 0x937b59aa91bed89b
+[15:32:47] [main/DEBUG]: -Dio.netty.leakDetection.level: simple
+[15:32:47] [main/DEBUG]: -Dio.netty.leakDetection.maxRecords: 4
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.numHeapArenas: 16
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.numDirectArenas: 16
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.pageSize: 8192
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.maxOrder: 11
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.chunkSize: 16777216
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.tinyCacheSize: 512
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.smallCacheSize: 256
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.normalCacheSize: 64
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.cacheTrimInterval: 8192
+[15:32:47] [main/DEBUG]: -Dio.netty.allocator.type: pooled
+[15:32:47] [main/DEBUG]: -Dio.netty.threadLocalDirectBufferSize: 65536
+[15:32:47] [main/DEBUG]: -Dio.netty.maxThreadLocalCharBufferSize: 16384
+[15:32:47] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.maxCapacity: 32768
+[15:32:47] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.maxSharedCapacityFactor: 2
+[15:32:47] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.linkCapacity: 16
+[15:32:47] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.buffer.bytebuf.checkAccessible: true
+[15:32:47] [epollEventLoopGroup-2-1/DEBUG]: Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@7bf1c19b
+[15:34:28] [main/DEBUG]: Using SLF4J as the default logging framework
+[15:34:28] [main/DEBUG]: java.nio.Buffer.address: available
+[15:34:28] [main/DEBUG]: sun.misc.Unsafe.theUnsafe: available
+[15:34:28] [main/DEBUG]: sun.misc.Unsafe.copyMemory: available
+[15:34:28] [main/DEBUG]: java.nio.Bits.unaligned: true
+[15:34:28] [main/DEBUG]: java.nio.DirectByteBuffer.<init>(long, int): available
+[15:34:28] [main/DEBUG]: java.nio.ByteBuffer.cleaner(): available
+[15:34:28] [main/DEBUG]: Java version: 8
+[15:34:28] [main/DEBUG]: -Dio.netty.noUnsafe: false
+[15:34:28] [main/DEBUG]: sun.misc.Unsafe: available
+[15:34:28] [main/DEBUG]: -Dio.netty.noJavassist: false
+[15:34:28] [main/DEBUG]: Javassist: unavailable
+[15:34:28] [main/DEBUG]: You don't have Javassist in your class path or you don't have enough permission to load dynamically generated classes.  Please check the configuration for better performance.
+[15:34:28] [main/DEBUG]: -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+[15:34:28] [main/DEBUG]: -Dio.netty.bitMode: 64 (sun.arch.data.model)
+[15:34:28] [main/DEBUG]: -Dio.netty.noPreferDirect: false
+[15:34:28] [main/DEBUG]: io.netty.maxDirectMemory: 3707764736 bytes
+[15:34:28] [main/DEBUG]: -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+[15:34:28] [main/DEBUG]: -Dio.netty.native.workdir: /tmp (io.netty.tmpdir)
+[15:34:28] [main/DEBUG]: Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)
+[15:34:28] [main/DEBUG]: /proc/sys/net/core/somaxconn: 128
+[15:34:28] [main/DEBUG]: -Dio.netty.eventLoopThreads: 16
+[15:34:28] [main/DEBUG]: -Dio.netty.processId: 1199 (auto-detected)
+[15:34:28] [main/DEBUG]: -Dio.netty.machineId: fc:aa:14:ff:fe:cb:0c:b5 (auto-detected)
+[15:34:28] [main/DEBUG]: -Dio.netty.initialSeedUniquifier: 0x75cb8a956c891e3d
+[15:34:28] [main/DEBUG]: -Dio.netty.leakDetection.level: simple
+[15:34:28] [main/DEBUG]: -Dio.netty.leakDetection.maxRecords: 4
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.numHeapArenas: 16
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.numDirectArenas: 16
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.pageSize: 8192
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.maxOrder: 11
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.chunkSize: 16777216
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.tinyCacheSize: 512
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.smallCacheSize: 256
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.normalCacheSize: 64
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.cacheTrimInterval: 8192
+[15:34:28] [main/DEBUG]: -Dio.netty.allocator.type: pooled
+[15:34:28] [main/DEBUG]: -Dio.netty.threadLocalDirectBufferSize: 65536
+[15:34:28] [main/DEBUG]: -Dio.netty.maxThreadLocalCharBufferSize: 16384
+[15:34:28] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.maxCapacity: 32768
+[15:34:28] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.maxSharedCapacityFactor: 2
+[15:34:28] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.recycler.linkCapacity: 16
+[15:34:28] [epollEventLoopGroup-2-1/DEBUG]: -Dio.netty.buffer.bytebuf.checkAccessible: true
+[15:34:28] [epollEventLoopGroup-2-1/DEBUG]: Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@edd83ca

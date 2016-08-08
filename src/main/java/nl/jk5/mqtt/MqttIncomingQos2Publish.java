@@ -12,7 +12,7 @@ final class MqttIncomingQos2Publish {
     private final MqttPublishMessage message;
     private final MqttMessage pubrecMessage;
 
-    private ScheduledFuture<?> pubrelTimer;
+    private ScheduledFuture<?> pubrecTimer;
     private int retransmitTimeout = 10;
 
     public MqttIncomingQos2Publish(MqttPublishMessage message, MqttMessage pubrecMessage) {
@@ -24,18 +24,19 @@ final class MqttIncomingQos2Publish {
         return message;
     }
 
-    public void startPubrelRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
-        this.pubrelTimer = eventLoop.schedule(() -> {
+    public void startPubrecRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
+        this.pubrecTimer = eventLoop.schedule(() -> {
             this.retransmitTimeout += 5;
             MqttFixedHeader fixedHeader1 = new MqttFixedHeader(MqttMessageType.PUBREC, true, MqttQoS.AT_LEAST_ONCE, false, 0);
             MqttMessage msg2 = new MqttMessage(fixedHeader1, pubrecMessage.variableHeader());
             sendPacket.accept(msg2);
+            startPubrecRetransmitTimer(eventLoop, sendPacket);
         }, retransmitTimeout, TimeUnit.SECONDS);
     }
 
     public void onPubrelReceived() {
-        if(this.pubrelTimer != null){
-            this.pubrelTimer.cancel(true);
+        if(this.pubrecTimer != null){
+            this.pubrecTimer.cancel(true);
         }
     }
 }
