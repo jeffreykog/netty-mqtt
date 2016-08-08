@@ -1,11 +1,13 @@
 package nl.jk5.mqtt;
 
 import javax.annotation.Nonnull;
+import java.util.regex.Pattern;
 
 final class MqttSubscribtion {
 
     @Nonnull
     private final String topic;
+    private final Pattern topicRegex;
 
     @Nonnull
     private final MqttHandler handler;
@@ -23,6 +25,7 @@ final class MqttSubscribtion {
         this.topic = topic;
         this.handler = handler;
         this.once = once;
+        this.topicRegex = Pattern.compile(topic.replace("+", "[^/]+").replace("#", ".+") + "$");
     }
 
     @Nonnull
@@ -42,6 +45,10 @@ final class MqttSubscribtion {
 
     public boolean isCalled() {
         return called;
+    }
+
+    public boolean matches(String topic){
+        return this.topicRegex.matcher(topic).matches();
     }
 
     @Override

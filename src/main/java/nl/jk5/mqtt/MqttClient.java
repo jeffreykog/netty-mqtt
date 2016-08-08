@@ -21,6 +21,9 @@ import io.netty.util.concurrent.Promise;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Represents an MqttClient connected to a single MQTT server. Will try to keep the connection going at all times
+ */
 public final class MqttClient {
 
     private final Set<String> serverSubscribtions = new HashSet<>();
@@ -39,18 +42,41 @@ public final class MqttClient {
 
     private Channel channel;
 
+    /**
+     * Construct the MqttClient with default config
+     */
     public MqttClient(){
         this.clientConfig = new MqttClientConfig();
     }
 
+    /**
+     * Construct the MqttClient with additional config.
+     * This config can also be changed using the {@link #getClientConfig()} function
+     *
+     * @param clientConfig The config object to use while looking for settings
+     */
     public MqttClient(MqttClientConfig clientConfig) {
         this.clientConfig = clientConfig;
     }
 
+    /**
+     * Connect to the specified hostname/ip. By default uses port 1883.
+     * If you want to change the port number, see {@link #connect(String, int)}
+     *
+     * @param host The ip address or host to connect to
+     * @return A future which will be completed when the connection is opened and we received an CONNACK
+     */
     public Future<MqttConnectResult> connect(String host){
         return connect(host, 1883);
     }
 
+    /**
+     * Connect to the specified hostname/ip using the specified port
+     *
+     * @param host The ip address or host to connect to
+     * @param port The tcp port to connect to
+     * @return A future which will be completed when the connection is opened and we received an CONNACK
+     */
     public Future<MqttConnectResult> connect(String host, int port){
         if(this.eventLoop == null){
             if(Epoll.isAvailable()){
@@ -77,38 +103,80 @@ public final class MqttClient {
         return connectFuture;
     }
 
+    /**
+     * Retrieve the netty {@link EventLoopGroup} we are using
+     * @return The netty {@link EventLoopGroup} we use for the connection
+     */
     public EventLoopGroup getEventLoop() {
         return eventLoop;
     }
 
+    /**
+     * By default we use the netty {@link EpollEventLoopGroup} if available on the platform, or the {@link NioEventLoopGroup} if not.
+     * If you want to force the MqttClient to use another {@link EventLoopGroup}, call this function before calling {@link #connect(String, int)}
+     *
+     * @param eventLoop The new eventloop to use
+     */
     public void setEventLoop(EventLoopGroup eventLoop) {
         this.eventLoop = eventLoop;
     }
 
-    Channel getChannel() {
-        return channel;
-    }
-
-    public void setChannel(Channel channel) {
-        this.channel = channel;
-    }
-
+    /**
+     * Subscribe on the given topic. When a message is received, MqttClient will invoke the {@link MqttHandler#onMessage(String, ByteBuf)} function of the given handler
+     *
+     * @param topic The topic filter to subscribe to
+     * @param handler The handler to invoke when we receive a message
+     * @return A future which will be completed when the server acknowledges our subscribe request
+     */
     public Future<Void> on(String topic, MqttHandler handler) {
         return on(topic, handler, MqttQoS.AT_MOST_ONCE);
     }
 
+    /**
+     * Subscribe on the given topic, with the given qos. When a message is received, MqttClient will invoke the {@link MqttHandler#onMessage(String, ByteBuf)} function of the given handler
+     *
+     * @param topic The topic filter to subscribe to
+     * @param handler The handler to invoke when we receive a message
+     * @param qos The qos to request to the server
+     * @return A future which will be completed when the server acknowledges our subscribe request
+     */
     public Future<Void> on(String topic, MqttHandler handler, MqttQoS qos) {
         return createSubscribtion(topic, handler, false, qos);
     }
 
+    /**
+     * Subscribe on the given topic. When a message is received, MqttClient will invoke the {@link MqttHandler#onMessage(String, ByteBuf)} function of the given handler
+     * This subscribtion is only once. If the MqttClient has received 1 message, the subscribtion will be removed
+     *
+     * @param topic The topic filter to subscribe to
+     * @param handler The handler to invoke when we receive a message
+     * @return A future which will be completed when the server acknowledges our subscribe request
+     */
     public Future<Void> once(String topic, MqttHandler handler) {
         return once(topic, handler, MqttQoS.AT_MOST_ONCE);
     }
 
+    /**
+     * Subscribe on the given topic, with the given qos. When a message is received, MqttClient will invoke the {@link MqttHandler#onMessage(String, ByteBuf)} function of the given handler
+     * This subscribtion is only once. If the MqttClient has received 1 message, the subscribtion will be removed
+     *
+     * @param topic The topic filter to subscribe to
+     * @param handler The handler to invoke when we receive a message
+     * @param qos The qos to request to the server
+     * @return A future which will be completed when the server acknowledges our subscribe request
+     */
     public Future<Void> once(String topic, MqttHandler handler, MqttQoS qos) {
         return createSubscribtion(topic, handler, true, qos);
     }
 
+    /**
+     * Remove the subscribtion for the given topic and handler
+     * If you want to unsubscribe from all handlers known for this topic, use {@link #off(String)}
+     *
+     * @param topic The topic to unsubscribe for
+     * @param handler The handler to unsubscribe
+     * @return A future which will be completed when the server acknowledges our unsubscribe request
+     */
     public Future<Void> off(String topic, MqttHandler handler) {
         Promise<Void> future = new DefaultPromise<>(this.eventLoop.next());
         for (MqttSubscribtion subscribtion : this.handlerToSubscribtion.get(handler)) {
@@ -119,6 +187,13 @@ public final class MqttClient {
         return future;
     }
 
+    /**
+     * Remove all subscribtions for the given topic.
+     * If you want to specify which handler to unsubscribe, use {@link #off(String, MqttHandler)}
+     *
+     * @param topic The topic to unsubscribe for
+     * @return A future which will be completed when the server acknowledges our unsubscribe request
+     */
     public Future<Void> off(String topic) {
         Promise<Void> future = new DefaultPromise<>(this.eventLoop.next());
         ImmutableSet<MqttSubscribtion> subscribtions = ImmutableSet.copyOf(this.subscriptions.get(topic));
@@ -132,18 +207,46 @@ public final class MqttClient {
         return future;
     }
 
+    /**
+     * Publish a message to the given payload
+     * @param topic The topic to publish to
+     * @param payload The payload to send
+     * @return A future which will be completed when the message is sent out of the MqttClient
+     */
     public Future<Void> publish(String topic, ByteBuf payload){
         return publish(topic, payload, MqttQoS.AT_MOST_ONCE, false);
     }
 
+    /**
+     * Publish a message to the given payload, using the given qos
+     * @param topic The topic to publish to
+     * @param payload The payload to send
+     * @param qos The qos to use while publishing
+     * @return A future which will be completed when the message is delivered to the server
+     */
     public Future<Void> publish(String topic, ByteBuf payload, MqttQoS qos){
         return publish(topic, payload, qos, false);
     }
 
+    /**
+     * Publish a message to the given payload, using optional retain
+     * @param topic The topic to publish to
+     * @param payload The payload to send
+     * @param retain true if you want to retain the message on the server, false otherwise
+     * @return A future which will be completed when the message is sent out of the MqttClient
+     */
     public Future<Void> publish(String topic, ByteBuf payload, boolean retain){
         return publish(topic, payload, MqttQoS.AT_MOST_ONCE, retain);
     }
 
+    /**
+     * Publish a message to the given payload, using the given qos and optional retain
+     * @param topic The topic to publish to
+     * @param payload The payload to send
+     * @param qos The qos to use while publishing
+     * @param retain true if you want to retain the message on the server, false otherwise
+     * @return A future which will be completed when the message is delivered to the server
+     */
     public Future<Void> publish(String topic, ByteBuf payload, MqttQoS qos, boolean retain){
         Promise<Void> future = new DefaultPromise<>(this.eventLoop.next());
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, retain, 0);
@@ -163,6 +266,16 @@ public final class MqttClient {
         return future;
     }
 
+    /**
+     * Retrieve the MqttClient configuration
+     * @return The {@link MqttClientConfig} instance we use
+     */
+    public MqttClientConfig getClientConfig() {
+        return clientConfig;
+    }
+
+    ///////////////////////////////////////////// PRIVATE API /////////////////////////////////////////////
+
     ChannelFuture sendAndFlushPacket(Object message){
         if(this.channel == null){
             return null;
@@ -173,12 +286,12 @@ public final class MqttClient {
         return this.channel.newFailedFuture(new RuntimeException("Channel is closed"));
     }
 
-    MqttMessageIdVariableHeader getNewMessageId(){
+    private MqttMessageIdVariableHeader getNewMessageId(){
         this.nextMessageId.compareAndSet(0xffff, 1);
         return MqttMessageIdVariableHeader.from(this.nextMessageId.getAndIncrement());
     }
 
-    Future<Void> createSubscribtion(String topic, MqttHandler handler, boolean once, MqttQoS qos){
+    private Future<Void> createSubscribtion(String topic, MqttHandler handler, boolean once, MqttQoS qos){
         if(this.pendingSubscribeTopics.contains(topic)){
             Optional<Map.Entry<Integer, MqttPendingSubscribtion>> subscribtionEntry = this.pendingSubscribtions.entrySet().stream().filter((e) -> e.getValue().getTopic().equals(topic)).findAny();
             if(subscribtionEntry.isPresent()){
@@ -211,7 +324,7 @@ public final class MqttClient {
         return future;
     }
 
-    void checkSubscribtions(String topic, Promise<Void> promise){
+    private void checkSubscribtions(String topic, Promise<Void> promise){
         if(!(this.subscriptions.containsKey(topic) && this.subscriptions.get(topic).size() != 0) && this.serverSubscribtions.contains(topic)){
             MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBSCRIBE, false, MqttQoS.AT_LEAST_ONCE, false, 0);
             MqttMessageIdVariableHeader variableHeader = getNewMessageId();
@@ -254,10 +367,6 @@ public final class MqttClient {
 
     IntObjectHashMap<MqttPendingPublish> getPendingPublishes() {
         return pendingPublishes;
-    }
-
-    public MqttClientConfig getClientConfig() {
-        return clientConfig;
     }
 
     IntObjectHashMap<MqttIncomingQos2Publish> getQos2PendingIncomingPublishes() {

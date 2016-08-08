@@ -19,7 +19,7 @@ final class MqttPendingSubscribtion {
 
     private boolean sent = false;
 
-    public MqttPendingSubscribtion(Promise<Void> future, String topic, MqttSubscribeMessage message) {
+    MqttPendingSubscribtion(Promise<Void> future, String topic, MqttSubscribeMessage message) {
         this.future = future;
         this.topic = topic;
         this.subscribeMessage = message;
@@ -27,44 +27,43 @@ final class MqttPendingSubscribtion {
         this.retransmissionHandler.setOriginalMessage(message);
     }
 
-    public Promise<Void> getFuture() {
+    Promise<Void> getFuture() {
         return future;
     }
 
-    public String getTopic() {
+    String getTopic() {
         return topic;
     }
 
-    public boolean isSent() {
+    boolean isSent() {
         return sent;
     }
 
-    public void setSent(boolean sent) {
+    void setSent(boolean sent) {
         this.sent = sent;
     }
 
-    public MqttSubscribeMessage getSubscribeMessage() {
+    MqttSubscribeMessage getSubscribeMessage() {
         return subscribeMessage;
     }
 
-    public void addHandler(MqttHandler handler, boolean once){
+    void addHandler(MqttHandler handler, boolean once){
         this.handlers.add(new MqttPendingHandler(handler, once));
     }
 
-    public Set<MqttPendingHandler> getHandlers() {
+    Set<MqttPendingHandler> getHandlers() {
         return handlers;
     }
 
-    public void startRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
+    void startRetransmitTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
         if(this.sent){ //If the packet is sent, we can start the retransmit timer
-            this.retransmissionHandler.setHandle((fixedHeader, originalMessage) -> {
-                sendPacket.accept(new MqttSubscribeMessage(fixedHeader, originalMessage.variableHeader(), originalMessage.payload()));
-            });
+            this.retransmissionHandler.setHandle((fixedHeader, originalMessage) ->
+                    sendPacket.accept(new MqttSubscribeMessage(fixedHeader, originalMessage.variableHeader(), originalMessage.payload())));
             this.retransmissionHandler.start(eventLoop);
         }
     }
 
-    public void onSubackReceived(){
+    void onSubackReceived(){
         this.retransmissionHandler.stop();
     }
 
@@ -72,16 +71,16 @@ final class MqttPendingSubscribtion {
         private final MqttHandler handler;
         private final boolean once;
 
-        public MqttPendingHandler(MqttHandler handler, boolean once) {
+        MqttPendingHandler(MqttHandler handler, boolean once) {
             this.handler = handler;
             this.once = once;
         }
 
-        public MqttHandler getHandler() {
+        MqttHandler getHandler() {
             return handler;
         }
 
-        public boolean isOnce() {
+        boolean isOnce() {
             return once;
         }
     }

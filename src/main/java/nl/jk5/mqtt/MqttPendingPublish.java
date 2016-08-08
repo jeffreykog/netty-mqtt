@@ -22,7 +22,7 @@ final class MqttPendingPublish {
 
     private boolean sent = false;
 
-    public MqttPendingPublish(int messageId, Promise<Void> future, ByteBuf payload, MqttPublishMessage message, MqttQoS qos) {
+    MqttPendingPublish(int messageId, Promise<Void> future, ByteBuf payload, MqttPublishMessage message, MqttQoS qos) {
         this.messageId = messageId;
         this.future = future;
         this.payload = payload;
@@ -32,57 +32,57 @@ final class MqttPendingPublish {
         this.publishRetransmissionHandler.setOriginalMessage(message);
     }
 
-    public int getMessageId() {
+    int getMessageId() {
         return messageId;
     }
 
-    public Promise<Void> getFuture() {
+    Promise<Void> getFuture() {
         return future;
     }
 
-    public ByteBuf getPayload() {
+    ByteBuf getPayload() {
         return payload;
     }
 
-    public boolean isSent() {
+    boolean isSent() {
         return sent;
     }
 
-    public void setSent(boolean sent) {
+    void setSent(boolean sent) {
         this.sent = sent;
     }
 
-    public MqttPublishMessage getMessage() {
+    MqttPublishMessage getMessage() {
         return message;
     }
 
-    public MqttQoS getQos() {
+    MqttQoS getQos() {
         return qos;
     }
 
-    public void startPublishRetransmissionTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
+    void startPublishRetransmissionTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
         this.publishRetransmissionHandler.setHandle(((fixedHeader, originalMessage) -> {
             sendPacket.accept(new MqttPublishMessage(fixedHeader, originalMessage.variableHeader(), this.payload.retain()));
         }));
         this.publishRetransmissionHandler.start(eventLoop);
     }
 
-    public void onPubackReceived() {
+    void onPubackReceived() {
         this.publishRetransmissionHandler.stop();
     }
 
-    public void setPubrelMessage(MqttMessage pubrelMessage) {
+    void setPubrelMessage(MqttMessage pubrelMessage) {
         this.pubrelRetransmissionHandler.setOriginalMessage(pubrelMessage);
     }
 
-    public void startPubrelRetransmissionTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
+    void startPubrelRetransmissionTimer(EventLoop eventLoop, Consumer<Object> sendPacket) {
         this.pubrelRetransmissionHandler.setHandle((fixedHeader, originalMessage) -> {
             sendPacket.accept(new MqttMessage(fixedHeader, originalMessage.variableHeader()));
         });
         this.pubrelRetransmissionHandler.start(eventLoop);
     }
 
-    public void onPubcompReceived() {
+    void onPubcompReceived() {
         this.pubrelRetransmissionHandler.stop();
     }
 }
