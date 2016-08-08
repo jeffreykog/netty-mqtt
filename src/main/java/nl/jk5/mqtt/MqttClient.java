@@ -155,8 +155,9 @@ public final class MqttClient {
 
         if(pendingPublish.isSent() && pendingPublish.getQos() == MqttQoS.AT_MOST_ONCE){
             pendingPublish.getFuture().setSuccess(null); //We don't get an ACK for QOS 0
-        }else{
+        }else if(pendingPublish.isSent()) {
             this.pendingPublishes.put(pendingPublish.getMessageId(), pendingPublish);
+            pendingPublish.startPublishRetransmissionTimer(this.eventLoop.next(), this::sendAndFlushPacket);
         }
 
         return future;
@@ -212,12 +213,15 @@ public final class MqttClient {
 
     void checkSubscribtions(String topic, Promise<Void> promise){
         if(!(this.subscriptions.containsKey(topic) && this.subscriptions.get(topic).size() != 0) && this.serverSubscribtions.contains(topic)){
-            //TODO: RETRANSMIT UNSUBSCRIBE: retry sending when no ACK
             MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBSCRIBE, false, MqttQoS.AT_LEAST_ONCE, false, 0);
             MqttMessageIdVariableHeader variableHeader = getNewMessageId();
             MqttUnsubscribePayload payload = new MqttUnsubscribePayload(Collections.singletonList(topic));
             MqttUnsubscribeMessage message = new MqttUnsubscribeMessage(fixedHeader, variableHeader, payload);
-            this.pendingServerUnsubscribes.put(variableHeader.messageId(), new MqttPendingUnsubscribtion(variableHeader.messageId(), promise, topic));
+
+            MqttPendingUnsubscribtion pendingUnsubscribtion = new MqttPendingUnsubscribtion(variableHeader.messageId(), promise, topic, message);
+            this.pendingServerUnsubscribes.put(variableHeader.messageId(), pendingUnsubscribtion);
+            pendingUnsubscribtion.startRetransmissionTimer(this.eventLoop.next(), this::sendAndFlushPacket);
+
             this.sendAndFlushPacket(message);
         }else{
             promise.setSuccess(null);

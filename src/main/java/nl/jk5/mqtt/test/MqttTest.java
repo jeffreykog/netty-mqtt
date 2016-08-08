@@ -1,7 +1,8 @@
-package nl.jk5.mqtt;
+package nl.jk5.mqtt.test;
 
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.util.CharsetUtil;
+import nl.jk5.mqtt.MqttClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,7 +14,7 @@ public class MqttTest {
         MqttClient client = new MqttClient();
         client.getClientConfig();
         client.connect("10.2.6.11");
-        client.on("test/topic", (topic, payload) -> {
+        client.once("test/topic", (topic, payload) -> {
             client.publish("test/response", payload.copy(), MqttQoS.EXACTLY_ONCE);
             /*client.once("test/t2", (t2, p2) -> {
                 logger.info("Received message: " + p2.toString(CharsetUtil.UTF_8));
