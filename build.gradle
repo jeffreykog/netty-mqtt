@@ -1,0 +1,48 @@
+plugins {
+    id "java"
+    id "idea"
+}
+
+group = "nl.jk5.netty-mqtt"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven {
+        name "jk-5"
+        url "http://maven.jk-5.nl/"
+    }
+}
+
+configurations {
+    shaded
+}
+
+dependencies {
+	compile 'io.netty:netty-all:4.1.4.Final'
+    compile 'com.google.code.findbugs:jsr305:3.0.1'
+    compile 'org.apache.logging.log4j:log4j-api:2.6.2'
+    compile 'org.apache.logging.log4j:log4j-core:2.6.2'
+    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.6.2'
+    compile 'com.google.guava:guava:19.0'
+}
+
+jar {
+    from {
+        configurations.shaded.collect {
+            it.isDirectory() ? it : zipTree(it).matching {
+                exclude "META-INF", "META-INF/**", "*META-INF*", "meta-inf"
+                exclude "**.jar", "**/*.jar", "*.jar"
+            }
+        }
+    }
+}
+
+jar.manifest {
+    attributes "Built-By": System.getProperty("user.name")
+    attributes "Build-Jdk": System.getProperty("java.version")
+    attributes "Created-By": "Gradle " + gradle.gradleVersion
+    attributes "Implementation-Version": project.version
+    attributes "Implementation-Title": "nl.jk5.netty-mqtt"
+    attributes "Implementation-Vendor": "jk-5"
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="SysOut" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
+        </Console>
+        <RollingRandomAccessFile name="File" fileName="logs/application.log" filePattern="logs/application-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
+            <DefaultRolloverStrategy max="3" fileIndex="max" />
+            <Policies>
+                <OnStartupTriggeringPolicy />
+            </Policies>
+        </RollingRandomAccessFile>
+        <RandomAccessFile name="NettyLog" fileName="logs/netty.log">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
+        </RandomAccessFile>
+        <RandomAccessFile name="HttpClientLog" fileName="logs/httpclient.log">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
+        </RandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="io.netty" level="all" additivity="false">
+            <AppenderRef ref="NettyLog" level="all"/>
+            <AppenderRef ref="SysOut" level="info"/>
+            <AppenderRef ref="File" level="info"/>
+        </Logger>
+        <Logger name="com.github.mauricio.async.db" level="all" additivity="false">
+            <AppenderRef ref="SysOut" level="warn"/>
+            <AppenderRef ref="File" level="info"/>
+        </Logger>
+        <Logger name="xitrum" level="all" additivity="false">
+            <AppenderRef ref="SysOut" level="info"/>
+            <AppenderRef ref="File" level="info"/>
+        </Logger>
+        <Logger name="org.asynchttpclient" level="all" additivity="false">
+            <AppenderRef ref="HttpClientLog" level="all"/>
+            <AppenderRef ref="SysOut" level="info"/>
+            <AppenderRef ref="File" level="info"/>
+        </Logger>
+        <Root level="all">
+            <AppenderRef ref="SysOut"/>
+            <AppenderRef ref="File"/>
+        </Root>
+    </Loggers>
+</Configuration>
