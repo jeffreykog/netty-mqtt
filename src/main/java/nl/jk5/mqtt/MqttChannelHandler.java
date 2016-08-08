@@ -217,9 +217,9 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
     private void handlePubrel(ChannelHandlerContext ctx, MqttMessage message){
         if(this.client.getQos2PendingIncomingPublishes().containsKey(((MqttMessageIdVariableHeader) message.variableHeader()).messageId())){
             MqttIncomingQos2Publish incomingQos2Publish = this.client.getQos2PendingIncomingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
-            this.invokeHandlersForIncomingPublish(incomingQos2Publish.getMessage());
+            this.invokeHandlersForIncomingPublish(incomingQos2Publish.getIncomingPublish());
             incomingQos2Publish.onPubrelReceived();
-            this.client.getQos2PendingIncomingPublishes().remove(incomingQos2Publish.getMessage().variableHeader().messageId());
+            this.client.getQos2PendingIncomingPublishes().remove(incomingQos2Publish.getIncomingPublish().variableHeader().messageId());
         }
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBCOMP, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());

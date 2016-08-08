@@ -150,7 +150,7 @@ public final class MqttClient {
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(topic, getNewMessageId().messageId());
         MqttPublishMessage message = new MqttPublishMessage(fixedHeader, variableHeader, payload);
 
-        MqttPendingPublish pendingPublish = new MqttPendingPublish(variableHeader.messageId(), future, topic, payload, message, qos);
+        MqttPendingPublish pendingPublish = new MqttPendingPublish(variableHeader.messageId(), future, payload.retain(), message, qos);
         pendingPublish.setSent(this.sendAndFlushPacket(message) != null);
 
         if(pendingPublish.isSent() && pendingPublish.getQos() == MqttQoS.AT_MOST_ONCE){
@@ -200,7 +200,7 @@ public final class MqttClient {
         MqttSubscribePayload payload = new MqttSubscribePayload(Collections.singletonList(subscription));
         MqttSubscribeMessage message = new MqttSubscribeMessage(fixedHeader, variableHeader, payload);
 
-        final MqttPendingSubscribtion pendingSubscribtion = new MqttPendingSubscribtion(variableHeader.messageId(), future, topic, message);
+        final MqttPendingSubscribtion pendingSubscribtion = new MqttPendingSubscribtion(future, topic, message);
         pendingSubscribtion.addHandler(handler, once);
         this.pendingSubscribtions.put(variableHeader.messageId(), pendingSubscribtion);
         this.pendingSubscribeTopics.add(topic);
@@ -218,7 +218,7 @@ public final class MqttClient {
             MqttUnsubscribePayload payload = new MqttUnsubscribePayload(Collections.singletonList(topic));
             MqttUnsubscribeMessage message = new MqttUnsubscribeMessage(fixedHeader, variableHeader, payload);
 
-            MqttPendingUnsubscribtion pendingUnsubscribtion = new MqttPendingUnsubscribtion(variableHeader.messageId(), promise, topic, message);
+            MqttPendingUnsubscribtion pendingUnsubscribtion = new MqttPendingUnsubscribtion(promise, topic, message);
             this.pendingServerUnsubscribes.put(variableHeader.messageId(), pendingUnsubscribtion);
             pendingUnsubscribtion.startRetransmissionTimer(this.eventLoop.next(), this::sendAndFlushPacket);
 
