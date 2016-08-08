@@ -14,26 +14,10 @@
         <RandomAccessFile name="NettyLog" fileName="logs/netty.log">
             <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
         </RandomAccessFile>
-        <RandomAccessFile name="HttpClientLog" fileName="logs/httpclient.log">
-            <PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level]: %msg%n" />
-        </RandomAccessFile>
     </Appenders>
     <Loggers>
         <Logger name="io.netty" level="all" additivity="false">
             <AppenderRef ref="NettyLog" level="all"/>
-            <AppenderRef ref="SysOut" level="info"/>
-            <AppenderRef ref="File" level="info"/>
-        </Logger>
-        <Logger name="com.github.mauricio.async.db" level="all" additivity="false">
-            <AppenderRef ref="SysOut" level="warn"/>
-            <AppenderRef ref="File" level="info"/>
-        </Logger>
-        <Logger name="xitrum" level="all" additivity="false">
-            <AppenderRef ref="SysOut" level="info"/>
-            <AppenderRef ref="File" level="info"/>
-        </Logger>
-        <Logger name="org.asynchttpclient" level="all" additivity="false">
-            <AppenderRef ref="HttpClientLog" level="all"/>
             <AppenderRef ref="SysOut" level="info"/>
             <AppenderRef ref="File" level="info"/>
         </Logger>

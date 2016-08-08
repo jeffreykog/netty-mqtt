@@ -13,7 +13,7 @@ import io.netty.util.concurrent.ScheduledFuture;
 
 import java.util.concurrent.TimeUnit;
 
-class MqttPingHandler extends ChannelInboundHandlerAdapter {
+final class MqttPingHandler extends ChannelInboundHandlerAdapter {
 
     private final int keepaliveSeconds;
 
@@ -60,11 +60,10 @@ class MqttPingHandler extends ChannelInboundHandlerAdapter {
         channel.writeAndFlush(new MqttMessage(fixedHeader));
 
         if(this.pingRespTimeout != null){
-            //this.pingRespTimeout.cancel(true);
             this.pingRespTimeout = channel.eventLoop().schedule(() -> {
                 MqttFixedHeader fixedHeader2 = new MqttFixedHeader(MqttMessageType.DISCONNECT, false, MqttQoS.AT_MOST_ONCE, false, 0);
                 channel.writeAndFlush(new MqttMessage(fixedHeader2)).addListener(ChannelFutureListener.CLOSE);
-                //TODO: what do when the connection is closed
+                //TODO: what do when the connection is closed ?
             }, this.keepaliveSeconds, TimeUnit.SECONDS);
         }
     }

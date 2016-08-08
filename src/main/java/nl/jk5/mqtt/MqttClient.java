@@ -21,10 +21,11 @@ import io.netty.util.concurrent.Promise;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MqttClient {
+public final class MqttClient {
 
     private final Set<String> serverSubscribtions = new HashSet<>();
     private final IntObjectHashMap<MqttPendingUnsubscribtion> pendingServerUnsubscribes = new IntObjectHashMap<>();
+    private final IntObjectHashMap<MqttPublishMessage> qos2PendingIncomingPublishes = new IntObjectHashMap<>();
     private final IntObjectHashMap<MqttPendingPublish> pendingPublishes = new IntObjectHashMap<>();
     private final HashMultimap<String, MqttSubscribtion> subscriptions = HashMultimap.create();
     private final IntObjectHashMap<MqttPendingSubscribtion> pendingSubscribtions = new IntObjectHashMap<>();
@@ -32,12 +33,18 @@ public class MqttClient {
     private final HashMultimap<MqttHandler, MqttSubscribtion> handlerToSubscribtion = HashMultimap.create();
     private final AtomicInteger nextMessageId = new AtomicInteger(1);
 
+    private final MqttClientConfig clientConfig;
+
     private EventLoopGroup eventLoop;
 
     private Channel channel;
 
     public MqttClient(){
+        this.clientConfig = new MqttClientConfig();
+    }
 
+    public MqttClient(MqttClientConfig clientConfig) {
+        this.clientConfig = clientConfig;
     }
 
     public Future<MqttConnectResult> connect(String host){
@@ -126,12 +133,20 @@ public class MqttClient {
     }
 
     public Future<Void> publish(String topic, ByteBuf payload){
-        return publish(topic, payload, MqttQoS.AT_MOST_ONCE);
+        return publish(topic, payload, MqttQoS.AT_MOST_ONCE, false);
     }
 
     public Future<Void> publish(String topic, ByteBuf payload, MqttQoS qos){
+        return publish(topic, payload, qos, false);
+    }
+
+    public Future<Void> publish(String topic, ByteBuf payload, boolean retain){
+        return publish(topic, payload, MqttQoS.AT_MOST_ONCE, retain);
+    }
+
+    public Future<Void> publish(String topic, ByteBuf payload, MqttQoS qos, boolean retain){
         Promise<Void> future = new DefaultPromise<>(this.eventLoop.next());
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, false, 0);
+        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, retain, 0);
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(topic, getNewMessageId().messageId());
         MqttPublishMessage message = new MqttPublishMessage(fixedHeader, variableHeader, payload);
 
@@ -162,8 +177,6 @@ public class MqttClient {
         return MqttMessageIdVariableHeader.from(this.nextMessageId.getAndIncrement());
     }
 
-    //TODO: allow to subscribe on an higher QOS, send the proper PUBACK when we receive a message
-    //TODO: Do this based on the granted QOS level in the SUBACK packet
     Future<Void> createSubscribtion(String topic, MqttHandler handler, boolean once, MqttQoS qos){
         if(this.pendingSubscribeTopics.contains(topic)){
             Optional<Map.Entry<Integer, MqttPendingSubscribtion>> subscribtionEntry = this.pendingSubscribtions.entrySet().stream().filter((e) -> e.getValue().getTopic().equals(topic)).findAny();
@@ -179,7 +192,6 @@ public class MqttClient {
             return this.channel.newSucceededFuture();
         }
 
-        //TODO: when no suback received, keep retransmitting the SUBSCRIBE message
         Promise<Void> future = new DefaultPromise<>(this.eventLoop.next());
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.SUBSCRIBE, false, MqttQoS.AT_LEAST_ONCE, false, 0);
         MqttTopicSubscription subscription = new MqttTopicSubscription(topic, qos);
@@ -187,17 +199,20 @@ public class MqttClient {
         MqttSubscribePayload payload = new MqttSubscribePayload(Collections.singletonList(subscription));
         MqttSubscribeMessage message = new MqttSubscribeMessage(fixedHeader, variableHeader, payload);
 
-        MqttPendingSubscribtion pendingSubscribtion = new MqttPendingSubscribtion(variableHeader.messageId(), future, topic, message);
+        final MqttPendingSubscribtion pendingSubscribtion = new MqttPendingSubscribtion(variableHeader.messageId(), future, topic, message);
         pendingSubscribtion.addHandler(handler, once);
         this.pendingSubscribtions.put(variableHeader.messageId(), pendingSubscribtion);
         this.pendingSubscribeTopics.add(topic);
-        pendingSubscribtion.setSent(this.sendAndFlushPacket(message) != null);
+        pendingSubscribtion.setSent(this.sendAndFlushPacket(message) != null); //If not sent, we will send it when the connection is opened
+
+        pendingSubscribtion.startRetransmitTimer(this.eventLoop.next(), this::sendAndFlushPacket);
+
         return future;
     }
 
     void checkSubscribtions(String topic, Promise<Void> promise){
         if(!(this.subscriptions.containsKey(topic) && this.subscriptions.get(topic).size() != 0) && this.serverSubscribtions.contains(topic)){
-            //TODO: retry sending when no ACK
+            //TODO: RETRANSMIT: retry sending when no ACK
             MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.UNSUBSCRIBE, false, MqttQoS.AT_LEAST_ONCE, false, 0);
             MqttMessageIdVariableHeader variableHeader = getNewMessageId();
             MqttUnsubscribePayload payload = new MqttUnsubscribePayload(Collections.singletonList(topic));
@@ -237,6 +252,14 @@ public class MqttClient {
         return pendingPublishes;
     }
 
+    public MqttClientConfig getClientConfig() {
+        return clientConfig;
+    }
+
+    IntObjectHashMap<MqttPublishMessage> getQos2PendingIncomingPublishes() {
+        return qos2PendingIncomingPublishes;
+    }
+
     private class MqttChannelInitializer extends ChannelInitializer<SocketChannel> {
 
         private final Promise<MqttConnectResult> connectFuture;
@@ -249,8 +272,8 @@ public class MqttClient {
         protected void initChannel(SocketChannel ch) throws Exception {
             ch.pipeline().addLast("mqttDecoder", new MqttDecoder());
             ch.pipeline().addLast("mqttEncoder", MqttEncoder.INSTANCE);
-            ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(MqttChannelHandler.KEEPALIVE_SECONDS + 5, MqttChannelHandler.KEEPALIVE_SECONDS, 0));
-            ch.pipeline().addLast("mqttPingHandler", new MqttPingHandler(MqttChannelHandler.KEEPALIVE_SECONDS));
+            ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(MqttClient.this.clientConfig.getTimeoutSeconds(), MqttClient.this.clientConfig.getTimeoutSeconds(), 0));
+            ch.pipeline().addLast("mqttPingHandler", new MqttPingHandler(MqttClient.this.clientConfig.getTimeoutSeconds()));
             ch.pipeline().addLast("mqttHandler", new MqttChannelHandler(MqttClient.this, connectFuture));
         }
     }

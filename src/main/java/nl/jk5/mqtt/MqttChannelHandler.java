@@ -9,32 +9,18 @@ import io.netty.util.concurrent.Promise;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Random;
 import java.util.Set;
 
-class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
-
-    static final int KEEPALIVE_SECONDS = 10;
-    private static final MqttVersion PROTOCOL_VERSION = MqttVersion.MQTT_3_1;
+final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
     private static final Logger logger = LogManager.getLogger();
 
     private final MqttClient client;
     private final Promise<MqttConnectResult> connectFuture;
 
-    private final String clientId;
-
     MqttChannelHandler(MqttClient client, Promise<MqttConnectResult> connectFuture) {
         this.client = client;
         this.connectFuture = connectFuture;
-
-        Random random = new Random();
-        String id = "omni/";
-        String[] options = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
-        for(int i = 0; i < 8; i++){
-            id += options[random.nextInt(options.length)];
-        }
-        this.clientId = id;
     }
 
     @Override
@@ -75,8 +61,27 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
         this.client.setChannel(ctx.channel());
 
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.CONNECT, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(PROTOCOL_VERSION.protocolName(), PROTOCOL_VERSION.protocolLevel(), false, false, false, 0, false, false, KEEPALIVE_SECONDS);
-        MqttConnectPayload payload = new MqttConnectPayload(clientId, null, null, null, null);
+        MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
+                this.client.getClientConfig().getProtocolVersion().protocolName(),  // Protocol Name
+                this.client.getClientConfig().getProtocolVersion().protocolLevel(), // Protocol Level
+                this.client.getClientConfig().getUsername() != null,                // Has Username
+                this.client.getClientConfig().getPassword() != null,                // Has Password
+                this.client.getClientConfig().getLastWill() != null                 // Will Retain
+                        && this.client.getClientConfig().getLastWill().isRetain(),
+                this.client.getClientConfig().getLastWill() != null                 // Will QOS
+                        ? this.client.getClientConfig().getLastWill().getQos().value()
+                        : 0,
+                this.client.getClientConfig().getLastWill() != null,                // Has Will
+                this.client.getClientConfig().isCleanSession(),                     // Clean Session
+                this.client.getClientConfig().getTimeoutSeconds()                   // Timeout
+        );
+        MqttConnectPayload payload = new MqttConnectPayload(
+                this.client.getClientConfig().getClientId(),
+                this.client.getClientConfig().getLastWill() != null ? this.client.getClientConfig().getLastWill().getTopic() : null,
+                this.client.getClientConfig().getLastWill() != null ? this.client.getClientConfig().getLastWill().getMessage() : null,
+                this.client.getClientConfig().getUsername(),
+                this.client.getClientConfig().getPassword()
+        );
         this.sendAndFlushPacket(new MqttConnectMessage(fixedHeader, variableHeader, payload));
     }
 
@@ -87,6 +92,22 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
     private ChannelFuture sendAndFlushPacket(Object message){
         return this.client.sendAndFlushPacket(message);
+    }
+
+    private void invokeHandlersForIncomingPublish(MqttPublishMessage message){
+        Set<MqttSubscribtion> subscribtions = ImmutableSet.copyOf(this.client.getSubscriptions().get(message.variableHeader().topicName()));
+        for (MqttSubscribtion subscribtion : subscribtions) {
+            if(subscribtion.isOnce() && subscribtion.isCalled()){
+                continue;
+            }
+            message.payload().markReaderIndex();
+            subscribtion.setCalled(true);
+            subscribtion.getHandler().onMessage(message.variableHeader().topicName(), message.payload());
+            if(subscribtion.isOnce()){
+                this.client.off(subscribtion.getTopic(), subscribtion.getHandler());
+            }
+            message.payload().resetReaderIndex();
+        }
     }
 
     private void handleConack(ChannelHandlerContext ctx, MqttConnAckMessage message){
@@ -116,6 +137,7 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
         if(pendingSubscribtion == null){
             return;
         }
+        pendingSubscribtion.onSubackReceived();
         for (MqttPendingSubscribtion.MqttPendingHandler handler : pendingSubscribtion.getHandlers()) {
             MqttSubscribtion subscribtion = new MqttSubscribtion(pendingSubscribtion.getTopic(), handler.getHandler(), handler.isOnce());
             this.client.getSubscriptions().put(pendingSubscribtion.getTopic(), subscribtion);
@@ -128,29 +150,29 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
     }
 
     private void handlePublish(ChannelHandlerContext ctx, MqttPublishMessage message){
-        Set<MqttSubscribtion> subscribtions = ImmutableSet.copyOf(this.client.getSubscriptions().get(message.variableHeader().topicName()));
-        for (MqttSubscribtion subscribtion : subscribtions) {
-            if(subscribtion.isOnce() && subscribtion.isCalled()){
-                continue;
-            }
-            message.payload().markReaderIndex();
-            subscribtion.setCalled(true);
-            subscribtion.getHandler().onMessage(message.variableHeader().topicName(), message.payload());
-            if(subscribtion.isOnce()){
-                this.client.off(subscribtion.getTopic(), subscribtion.getHandler());
-            }
-            message.payload().resetReaderIndex();
-        }
-        if(message.fixedHeader().qosLevel() == MqttQoS.AT_LEAST_ONCE && message.variableHeader().messageId() != -1){
-            MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
-            MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
-            this.sendAndFlushPacket(new MqttPubAckMessage(fixedHeader, variableHeader));
-        }
-        if(message.fixedHeader().qosLevel() == MqttQoS.EXACTLY_ONCE && message.variableHeader().messageId() != -1){
-            //TODO: keep spamming PUBREC until we receive PUBREL
-            MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, false, MqttQoS.AT_MOST_ONCE, false, 0);
-            MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
-            this.sendAndFlushPacket(new MqttMessage(fixedHeader, variableHeader));
+        switch (message.fixedHeader().qosLevel()){
+            case AT_MOST_ONCE:
+                invokeHandlersForIncomingPublish(message);
+                break;
+
+            case AT_LEAST_ONCE:
+                invokeHandlersForIncomingPublish(message);
+                if(message.variableHeader().messageId() != -1){
+                    MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
+                    MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
+                    this.sendAndFlushPacket(new MqttPubAckMessage(fixedHeader, variableHeader));
+                }
+                break;
+
+            case EXACTLY_ONCE:
+                if(message.variableHeader().messageId() != -1){
+                    this.client.getQos2PendingIncomingPublishes().put(message.variableHeader().messageId(), message);
+                    //TODO: RETRANSMIT: keep spamming PUBREC until we receive PUBREL
+                    MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, false, MqttQoS.AT_MOST_ONCE, false, 0);
+                    MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
+                    this.sendAndFlushPacket(new MqttMessage(fixedHeader, variableHeader));
+                }
+                break;
         }
     }
 
@@ -164,14 +186,14 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
         this.client.getPendingServerUnsubscribes().remove(message.variableHeader().messageId());
     }
 
-    //TODO: retry sending the packet untill we receive an PUBACK
+    //TODO: RETRANSMIT: retry sending the packet untill we receive an PUBACK
     private void handlePuback(ChannelHandlerContext ctx, MqttPubAckMessage message){
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(message.variableHeader().messageId());
         pendingPublish.getFuture().setSuccess(null);
         this.client.getPendingPublishes().remove(message.variableHeader().messageId());
     }
 
-    //TODO: retry sending the packet untill we receive an PUBREC
+    //TODO: RETRANSMIT: retry sending the packet untill we receive an PUBREC
     private void handlePubrec(ChannelHandlerContext ctx, MqttMessage message){
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREL, false, MqttQoS.AT_LEAST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) message.variableHeader();
@@ -179,9 +201,11 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
     }
 
     private void handlePubrel(ChannelHandlerContext ctx, MqttMessage message){
-        //When a subscriber receives a PUBREL message from the server, the subscriber makes the message available to the subscribing application and sends a PUBCOMP message to the server.
-        //TODO: wait with executing handlers untill this point.
-        //TODO: Save if we executed the handlers. If we did it once, don't do it again, but do re-send a PUBCOMP
+        if(this.client.getQos2PendingIncomingPublishes().containsKey(((MqttMessageIdVariableHeader) message.variableHeader()).messageId())){
+            MqttPublishMessage msg = this.client.getQos2PendingIncomingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
+            this.invokeHandlersForIncomingPublish(msg);
+            this.client.getQos2PendingIncomingPublishes().remove(msg.variableHeader().messageId());
+        }
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBCOMP, false, MqttQoS.AT_MOST_ONCE, false, 0);
         MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
         this.sendAndFlushPacket(new MqttMessage(fixedHeader, variableHeader));
@@ -192,10 +216,5 @@ class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(variableHeader.messageId());
         pendingPublish.getFuture().setSuccess(null);
         this.client.getPendingPublishes().remove(variableHeader.messageId());
-    }
-
-    private void sendKeepAlive(){
-        MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PINGREQ, false, MqttQoS.AT_MOST_ONCE, false, 0);
-        this.sendAndFlushPacket(new MqttMessage(fixedHeader));
     }
 }

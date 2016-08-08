@@ -11,6 +11,7 @@ public class MqttTest {
 
     public static void main(String[] args) {
         MqttClient client = new MqttClient();
+        client.getClientConfig();
         client.connect("10.2.6.11");
         client.on("test/topic", (topic, payload) -> {
             client.publish("test/response", payload.copy(), MqttQoS.EXACTLY_ONCE);
