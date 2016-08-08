@@ -1,8 +1,7 @@
 .idea/
-.gradle/
-build/
 *.ipr
 *.iws
 *.ids
 *.iml
 logs
+target
