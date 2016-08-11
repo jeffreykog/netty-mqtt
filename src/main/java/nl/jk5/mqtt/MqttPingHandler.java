@@ -9,6 +9,7 @@ import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.ScheduledFuture;
 
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,7 @@ final class MqttPingHandler extends ChannelInboundHandlerAdapter {
         } else if(message.fixedHeader().messageType() == MqttMessageType.PINGRESP){
             this.handlePingResp();
         }else{
-            ctx.fireChannelRead(msg);
+            ctx.fireChannelRead(ReferenceCountUtil.retain(msg));
         }
     }
 
