@@ -9,10 +9,10 @@ import io.netty.util.concurrent.Promise;
 
 final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
 
-    private final MqttClient client;
+    private final MqttClientImpl client;
     private final Promise<MqttConnectResult> connectFuture;
 
-    MqttChannelHandler(MqttClient client, Promise<MqttConnectResult> connectFuture) {
+    MqttChannelHandler(MqttClientImpl client, Promise<MqttConnectResult> connectFuture) {
         this.client = client;
         this.connectFuture = connectFuture;
     }
