@@ -3,6 +3,7 @@ package nl.jk5.mqtt;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.mqtt.MqttVersion;
+import io.netty.handler.ssl.SslContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -11,6 +12,7 @@ import java.util.Random;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class MqttClientConfig {
 
+    private final SslContext sslContext;
     private final String randomClientId;
 
     private String clientId;
@@ -23,6 +25,11 @@ public final class MqttClientConfig {
     private Class<? extends Channel> channelClass = NioSocketChannel.class;
 
     public MqttClientConfig() {
+        this(null);
+    }
+
+    public MqttClientConfig(SslContext sslContext) {
+        this.sslContext = sslContext;
         Random random = new Random();
         String id = "netty-mqtt/";
         String[] options = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
@@ -109,5 +116,9 @@ public final class MqttClientConfig {
 
     public void setChannelClass(Class<? extends Channel> channelClass) {
         this.channelClass = channelClass;
+    }
+
+    public SslContext getSslContext() {
+        return sslContext;
     }
 }
