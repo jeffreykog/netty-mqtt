@@ -41,6 +41,8 @@ final class MqttClientImpl implements MqttClient {
 
     private Channel channel;
 
+    private boolean disconnected = false;
+
     /**
      * Construct the MqttClientImpl with default config
      */
@@ -92,7 +94,7 @@ final class MqttClientImpl implements MqttClient {
         future.addListener((ChannelFutureListener) f -> {
             if (f.isSuccess()) {
                 MqttClientImpl.this.channel = f.channel();
-            } else if (clientConfig.isReconnect()) {
+            } else if (clientConfig.isReconnect() && !disconnected) {
                 eventLoop.schedule((Runnable) () -> connect(host, port), 1L, TimeUnit.SECONDS);
             }
         });
@@ -299,6 +301,7 @@ final class MqttClientImpl implements MqttClient {
 
     @Override
     public void disconnect() {
+        disconnected = true;
         MqttMessage message = new MqttMessage(new MqttFixedHeader(MqttMessageType.DISCONNECT, false, MqttQoS.AT_MOST_ONCE, false, 0));
         this.sendAndFlushPacket(message).addListener(future1 -> channel.close());
     }
