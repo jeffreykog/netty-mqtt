@@ -24,6 +24,8 @@ public final class MqttClientConfig {
     @Nullable private MqttLastWill lastWill;
     private Class<? extends Channel> channelClass = NioSocketChannel.class;
 
+    private boolean reconnect = true;
+
     public MqttClientConfig() {
         this(null);
     }
@@ -120,5 +122,13 @@ public final class MqttClientConfig {
 
     public SslContext getSslContext() {
         return sslContext;
+    }
+
+    public boolean isReconnect() {
+        return reconnect;
+    }
+
+    public void setReconnect(boolean reconnect) {
+        this.reconnect = reconnect;
     }
 }

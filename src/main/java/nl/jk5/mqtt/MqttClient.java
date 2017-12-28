@@ -159,4 +159,12 @@ public interface MqttClient {
     static MqttClient create(MqttClientConfig config){
         return new MqttClientImpl(config);
     }
+
+
+    /**
+     * Send disconnect and close channel
+     *
+     */
+    void disconnect();
+
 }

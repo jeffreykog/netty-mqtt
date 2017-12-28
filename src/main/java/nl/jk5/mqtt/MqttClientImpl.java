@@ -16,6 +16,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -88,8 +89,13 @@ final class MqttClientImpl implements MqttClient {
         bootstrap.remoteAddress(host, port);
         bootstrap.handler(new MqttChannelInitializer(connectFuture, host, port, clientConfig.getSslContext()));
         ChannelFuture future = bootstrap.connect();
-        future.addListener((ChannelFutureListener) f -> MqttClientImpl.this.channel = f.channel());
-
+        future.addListener((ChannelFutureListener) f -> {
+            if (f.isSuccess()) {
+                MqttClientImpl.this.channel = f.channel();
+            } else if (clientConfig.isReconnect()) {
+                eventLoop.schedule((Runnable) () -> connect(host, port), 1L, TimeUnit.SECONDS);
+            }
+        });
         return connectFuture;
     }
 
@@ -283,6 +289,13 @@ final class MqttClientImpl implements MqttClient {
     public MqttClientConfig getClientConfig() {
         return clientConfig;
     }
+
+    @Override
+    public void disconnect() {
+        MqttMessage message = new MqttMessage(new MqttFixedHeader(MqttMessageType.DISCONNECT, false, MqttQoS.AT_MOST_ONCE, false, 0));
+        this.sendAndFlushPacket(message).addListener(future1 -> channel.close());
+    }
+
 
     ///////////////////////////////////////////// PRIVATE API /////////////////////////////////////////////
 
