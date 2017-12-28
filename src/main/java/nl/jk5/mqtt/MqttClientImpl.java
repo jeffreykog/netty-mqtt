@@ -268,8 +268,15 @@ final class MqttClientImpl implements MqttClient {
         MqttPublishMessage message = new MqttPublishMessage(fixedHeader, variableHeader, payload);
 
         MqttPendingPublish pendingPublish = new MqttPendingPublish(variableHeader.messageId(), future, payload.retain(), message, qos);
-        pendingPublish.setSent(this.sendAndFlushPacket(message) != null);
+        ChannelFuture channelFuture = this.sendAndFlushPacket(message);
 
+        if (channelFuture != null) {
+            pendingPublish.setSent(channelFuture != null);
+            if (channelFuture.cause() != null) {
+                future.setFailure(channelFuture.cause());
+                return future;
+            }
+        }
         if (pendingPublish.isSent() && pendingPublish.getQos() == MqttQoS.AT_MOST_ONCE) {
             pendingPublish.getFuture().setSuccess(null); //We don't get an ACK for QOS 0
         } else if (pendingPublish.isSent()) {
@@ -306,7 +313,7 @@ final class MqttClientImpl implements MqttClient {
         if (this.channel.isActive()) {
             return this.channel.writeAndFlush(message);
         }
-        return this.channel.newFailedFuture(new RuntimeException("Channel is closed"));
+        return this.channel.newFailedFuture(new ChannelClosedException("Channel is closed"));
     }
 
     private MqttMessageIdVariableHeader getNewMessageId() {
