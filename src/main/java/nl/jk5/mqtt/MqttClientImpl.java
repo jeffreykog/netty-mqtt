@@ -109,14 +109,6 @@ final class MqttClientImpl implements MqttClient {
     }
 
     @Override
-    public boolean isConnected() {
-        if (!disconnected) {
-            return channel == null ? false : channel.isActive();
-        };
-        return false;
-    }
-
-    @Override
     public Future<MqttConnectResult> reconnect() {
         if (host == null) {
             throw new IllegalStateException("Cannot reconnect. Call connect() first");
