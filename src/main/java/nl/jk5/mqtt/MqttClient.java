@@ -28,6 +28,12 @@ public interface MqttClient {
     Future<MqttConnectResult> connect(String host, int port);
 
     /**
+     *
+     * @return boolean value indicating if channel is active
+     */
+    boolean isConnected();
+
+    /**
      * Attempt reconnect to the host that was attempted with {@link #connect(String, int)} method before
      *
      * @return A future which will be completed when the connection is opened and we received an CONNACK
