@@ -42,6 +42,10 @@ final class MqttClientImpl implements MqttClient {
     private Channel channel;
 
     private boolean disconnected = false;
+    private String host;
+    private int port;
+    private MqttClientCallback callback;
+
 
     /**
      * Construct the MqttClientImpl with default config
@@ -84,6 +88,9 @@ final class MqttClientImpl implements MqttClient {
         if (this.eventLoop == null) {
             this.eventLoop = new NioEventLoopGroup();
         }
+        this.host = host;
+        this.port = port;
+
         Promise<MqttConnectResult> connectFuture = new DefaultPromise<>(this.eventLoop.next());
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(this.eventLoop);
@@ -99,6 +106,22 @@ final class MqttClientImpl implements MqttClient {
             }
         });
         return connectFuture;
+    }
+
+    @Override
+    public boolean isConnected() {
+        if (!disconnected) {
+            return channel == null ? false : channel.isActive();
+        };
+        return false;
+    }
+
+    @Override
+    public Future<MqttConnectResult> reconnect() {
+        if (host == null) {
+            throw new IllegalStateException("Cannot reconnect. Call connect() first");
+        }
+        return connect(host, port);
     }
 
     /**
@@ -268,7 +291,6 @@ final class MqttClientImpl implements MqttClient {
         MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, retain, 0);
         MqttPublishVariableHeader variableHeader = new MqttPublishVariableHeader(topic, getNewMessageId().messageId());
         MqttPublishMessage message = new MqttPublishMessage(fixedHeader, variableHeader, payload);
-
         MqttPendingPublish pendingPublish = new MqttPendingPublish(variableHeader.messageId(), future, payload.retain(), message, qos);
         ChannelFuture channelFuture = this.sendAndFlushPacket(message);
 
@@ -285,7 +307,6 @@ final class MqttClientImpl implements MqttClient {
             this.pendingPublishes.put(pendingPublish.getMessageId(), pendingPublish);
             pendingPublish.startPublishRetransmissionTimer(this.eventLoop.next(), this::sendAndFlushPacket);
         }
-
         return future;
     }
 
@@ -308,6 +329,11 @@ final class MqttClientImpl implements MqttClient {
         }
     }
 
+    @Override
+    public void setCallback(MqttClientCallback callback) {
+        this.callback = callback;
+    }
+
 
     ///////////////////////////////////////////// PRIVATE API /////////////////////////////////////////////
 
@@ -318,7 +344,11 @@ final class MqttClientImpl implements MqttClient {
         if (this.channel.isActive()) {
             return this.channel.writeAndFlush(message);
         }
-        return this.channel.newFailedFuture(new ChannelClosedException("Channel is closed"));
+        ChannelClosedException e = new ChannelClosedException("Channel is closed");
+        if (callback != null) {
+            callback.connectionLost(e);
+        }
+        return this.channel.newFailedFuture(e);
     }
 
     private MqttMessageIdVariableHeader getNewMessageId() {
