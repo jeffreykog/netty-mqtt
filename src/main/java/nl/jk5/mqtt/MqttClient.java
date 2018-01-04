@@ -28,6 +28,20 @@ public interface MqttClient {
     Future<MqttConnectResult> connect(String host, int port);
 
     /**
+     *
+     * @return boolean value indicating if channel is active
+     */
+    boolean isConnected();
+
+    /**
+     * Attempt reconnect to the host that was attempted with {@link #connect(String, int)} method before
+     *
+     * @return A future which will be completed when the connection is opened and we received an CONNACK
+     * @throws IllegalStateException if no previous {@link #connect(String, int)} calls were attempted
+     */
+    Future<MqttConnectResult> reconnect();
+
+    /**
      * Retrieve the netty {@link EventLoopGroup} we are using
      * @return The netty {@link EventLoopGroup} we use for the connection
      */
@@ -166,5 +180,11 @@ public interface MqttClient {
      *
      */
     void disconnect();
+
+    /**
+     * Sets the {@see #MqttClientCallback} object for this MqttClient
+     * @param callback The callback to be set
+     */
+    void setCallback(MqttClientCallback callback);
 
 }
