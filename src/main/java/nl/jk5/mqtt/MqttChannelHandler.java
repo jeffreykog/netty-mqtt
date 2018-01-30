@@ -19,7 +19,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MqttMessage msg) throws Exception {
-        switch (msg.fixedHeader().messageType()){
+        switch (msg.fixedHeader().messageType()) {
             case CONNACK:
                 handleConack(ctx.channel(), (MqttConnAckMessage) msg);
                 break;
@@ -81,16 +81,16 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         super.channelInactive(ctx);
     }
 
-    private void invokeHandlersForIncomingPublish(MqttPublishMessage message){
+    private void invokeHandlersForIncomingPublish(MqttPublishMessage message) {
         for (MqttSubscribtion subscribtion : ImmutableSet.copyOf(this.client.getSubscriptions().values())) {
-            if(subscribtion.matches(message.variableHeader().topicName())){
-                if(subscribtion.isOnce() && subscribtion.isCalled()){
+            if (subscribtion.matches(message.variableHeader().topicName())) {
+                if (subscribtion.isOnce() && subscribtion.isCalled()) {
                     continue;
                 }
                 message.payload().markReaderIndex();
                 subscribtion.setCalled(true);
                 subscribtion.getHandler().onMessage(message.variableHeader().topicName(), message.payload());
-                if(subscribtion.isOnce()){
+                if (subscribtion.isOnce()) {
                     this.client.off(subscribtion.getTopic(), subscribtion.getHandler());
                 }
                 message.payload().resetReaderIndex();
@@ -112,8 +112,8 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         message.payload().release();
     }
 
-    private void handleConack(Channel channel, MqttConnAckMessage message){
-        switch(message.variableHeader().connectReturnCode()){
+    private void handleConack(Channel channel, MqttConnAckMessage message) {
+        switch (message.variableHeader().connectReturnCode()) {
             case CONNECTION_ACCEPTED:
                 this.connectFuture.setSuccess(new MqttConnectResult(true, MqttConnectReturnCode.CONNECTION_ACCEPTED, channel.closeFuture()));
 
@@ -123,10 +123,10 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
                 });
 
                 this.client.getPendingPublishes().forEach((id, publish) -> {
-                    if(publish.isSent()) return;
+                    if (publish.isSent()) return;
                     channel.write(publish.getMessage());
                     publish.setSent(true);
-                    if(publish.getQos() == MqttQoS.AT_MOST_ONCE){
+                    if (publish.getQos() == MqttQoS.AT_MOST_ONCE) {
                         publish.getFuture().setSuccess(null); //We don't get an ACK for QOS 0
                         this.client.getPendingPublishes().remove(publish.getMessageId());
                     }
@@ -146,32 +146,35 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         }
     }
 
-    private void handleSubAck(MqttSubAckMessage message){
-        MqttPendingSubscribtion pendingSubscribtion = this.client.getPendingSubscribtions().get(message.variableHeader().messageId());
-        if(pendingSubscribtion == null){
+    private void handleSubAck(MqttSubAckMessage message) {
+        MqttPendingSubscribtion pendingSubscription = this.client.getPendingSubscribtions().remove(message.variableHeader().messageId());
+        if (pendingSubscription == null) {
             return;
         }
-        pendingSubscribtion.onSubackReceived();
-        for (MqttPendingSubscribtion.MqttPendingHandler handler : pendingSubscribtion.getHandlers()) {
-            MqttSubscribtion subscribtion = new MqttSubscribtion(pendingSubscribtion.getTopic(), handler.getHandler(), handler.isOnce());
-            this.client.getSubscriptions().put(pendingSubscribtion.getTopic(), subscribtion);
+        pendingSubscription.onSubackReceived();
+        for (MqttPendingSubscribtion.MqttPendingHandler handler : pendingSubscription.getHandlers()) {
+            MqttSubscribtion subscribtion = new MqttSubscribtion(pendingSubscription.getTopic(), handler.getHandler(), handler.isOnce());
+            this.client.getSubscriptions().put(pendingSubscription.getTopic(), subscribtion);
             this.client.getHandlerToSubscribtion().put(handler.getHandler(), subscribtion);
         }
-        this.client.getPendingSubscribeTopics().remove(pendingSubscribtion.getTopic());
+        this.client.getPendingSubscribeTopics().remove(pendingSubscription.getTopic());
 
-        this.client.getServerSubscribtions().add(pendingSubscribtion.getTopic());
-        pendingSubscribtion.getFuture().setSuccess(null);
+        this.client.getServerSubscribtions().add(pendingSubscription.getTopic());
+
+        if (!pendingSubscription.getFuture().isDone()) {
+            pendingSubscription.getFuture().setSuccess(null);
+        }
     }
 
-    private void handlePublish(Channel channel, MqttPublishMessage message){
-        switch (message.fixedHeader().qosLevel()){
+    private void handlePublish(Channel channel, MqttPublishMessage message) {
+        switch (message.fixedHeader().qosLevel()) {
             case AT_MOST_ONCE:
                 invokeHandlersForIncomingPublish(message);
                 break;
 
             case AT_LEAST_ONCE:
                 invokeHandlersForIncomingPublish(message);
-                if(message.variableHeader().messageId() != -1){
+                if (message.variableHeader().messageId() != -1) {
                     MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, MqttQoS.AT_MOST_ONCE, false, 0);
                     MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
                     channel.writeAndFlush(new MqttPubAckMessage(fixedHeader, variableHeader));
@@ -179,7 +182,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
                 break;
 
             case EXACTLY_ONCE:
-                if(message.variableHeader().messageId() != -1){
+                if (message.variableHeader().messageId() != -1) {
                     MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBREC, false, MqttQoS.AT_MOST_ONCE, false, 0);
                     MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(message.variableHeader().messageId());
                     MqttMessage pubrecMessage = new MqttMessage(fixedHeader, variableHeader);
@@ -195,9 +198,9 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         }
     }
 
-    private void handleUnsuback(MqttUnsubAckMessage message){
+    private void handleUnsuback(MqttUnsubAckMessage message) {
         MqttPendingUnsubscribtion unsubscribtion = this.client.getPendingServerUnsubscribes().get(message.variableHeader().messageId());
-        if(unsubscribtion == null){
+        if (unsubscribtion == null) {
             return;
         }
         unsubscribtion.onUnsubackReceived();
@@ -206,7 +209,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         this.client.getPendingServerUnsubscribes().remove(message.variableHeader().messageId());
     }
 
-    private void handlePuback(MqttPubAckMessage message){
+    private void handlePuback(MqttPubAckMessage message) {
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(message.variableHeader().messageId());
         pendingPublish.getFuture().setSuccess(null);
         pendingPublish.onPubackReceived();
@@ -214,7 +217,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         pendingPublish.getPayload().release();
     }
 
-    private void handlePubrec(Channel channel, MqttMessage message){
+    private void handlePubrec(Channel channel, MqttMessage message) {
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
         pendingPublish.onPubackReceived();
 
@@ -227,8 +230,8 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         pendingPublish.startPubrelRetransmissionTimer(this.client.getEventLoop().next(), this.client::sendAndFlushPacket);
     }
 
-    private void handlePubrel(Channel channel, MqttMessage message){
-        if(this.client.getQos2PendingIncomingPublishes().containsKey(((MqttMessageIdVariableHeader) message.variableHeader()).messageId())){
+    private void handlePubrel(Channel channel, MqttMessage message) {
+        if (this.client.getQos2PendingIncomingPublishes().containsKey(((MqttMessageIdVariableHeader) message.variableHeader()).messageId())) {
             MqttIncomingQos2Publish incomingQos2Publish = this.client.getQos2PendingIncomingPublishes().get(((MqttMessageIdVariableHeader) message.variableHeader()).messageId());
             this.invokeHandlersForIncomingPublish(incomingQos2Publish.getIncomingPublish());
             incomingQos2Publish.onPubrelReceived();
@@ -239,7 +242,7 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         channel.writeAndFlush(new MqttMessage(fixedHeader, variableHeader));
     }
 
-    private void handlePubcomp(MqttMessage message){
+    private void handlePubcomp(MqttMessage message) {
         MqttMessageIdVariableHeader variableHeader = (MqttMessageIdVariableHeader) message.variableHeader();
         MqttPendingPublish pendingPublish = this.client.getPendingPublishes().get(variableHeader.messageId());
         pendingPublish.getFuture().setSuccess(null);
