@@ -5,6 +5,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.mqtt.*;
+import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.Promise;
 
 final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> {
@@ -69,9 +70,9 @@ final class MqttChannelHandler extends SimpleChannelInboundHandler<MqttMessage> 
         MqttConnectPayload payload = new MqttConnectPayload(
                 this.client.getClientConfig().getClientId(),
                 this.client.getClientConfig().getLastWill() != null ? this.client.getClientConfig().getLastWill().getTopic() : null,
-                this.client.getClientConfig().getLastWill() != null ? this.client.getClientConfig().getLastWill().getMessage() : null,
+                this.client.getClientConfig().getLastWill() != null ? this.client.getClientConfig().getLastWill().getMessage().getBytes(CharsetUtil.UTF_8) : null,
                 this.client.getClientConfig().getUsername(),
-                this.client.getClientConfig().getPassword()
+                this.client.getClientConfig().getPassword().getBytes(CharsetUtil.UTF_8)
         );
         ctx.channel().writeAndFlush(new MqttConnectMessage(fixedHeader, variableHeader, payload));
     }
