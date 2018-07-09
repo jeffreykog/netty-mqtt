@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-final class MqttPendingSubscribtion {
+final class MqttPendingSubscription {
 
     private final Promise<Void> future;
     private final String topic;
@@ -19,7 +19,7 @@ final class MqttPendingSubscribtion {
 
     private boolean sent = false;
 
-    MqttPendingSubscribtion(Promise<Void> future, String topic, MqttSubscribeMessage message) {
+    MqttPendingSubscription(Promise<Void> future, String topic, MqttSubscribeMessage message) {
         this.future = future;
         this.topic = topic;
         this.subscribeMessage = message;

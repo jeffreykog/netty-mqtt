@@ -10,5 +10,11 @@ public interface MqttClientCallback {
      *
      * @param cause the reason behind the loss of connection.
      */
-    public void connectionLost(Throwable cause);
+    void connectionLost(Throwable cause);
+
+    /**
+     * This method is called when the connection to the server is recovered.
+     *
+     */
+    void onSuccessfulReconnect();
 }
