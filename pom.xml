@@ -6,8 +6,8 @@
     <version>2.0.0TB</version>
     <packaging>jar</packaging>
 
-    <name>netty-mqtt</name>
-    <url>http://github.com/jk-5/netty-mqtt/</url>
+    <name>Netty MQTT Client</name>
+    <url>https://github.com/thingsboard/netty-mqtt</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

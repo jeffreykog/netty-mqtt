@@ -25,6 +25,7 @@ public final class MqttClientConfig {
     private Class<? extends Channel> channelClass = NioSocketChannel.class;
 
     private boolean reconnect = true;
+    private long retryInterval = 1L;
 
     public MqttClientConfig() {
         this(null);
@@ -48,7 +49,7 @@ public final class MqttClientConfig {
     }
 
     public void setClientId(@Nullable String clientId) {
-        if(clientId == null){
+        if(clientId == null || clientId.isEmpty()){
             this.clientId = randomClientId;
         }else{
             this.clientId = clientId;
@@ -130,5 +131,13 @@ public final class MqttClientConfig {
 
     public void setReconnect(boolean reconnect) {
         this.reconnect = reconnect;
+    }
+
+    public long getRetryInterval() {
+        return retryInterval;
+    }
+
+    public void setRetryInterval(long retryInterval) {
+        this.retryInterval = retryInterval;
     }
 }
