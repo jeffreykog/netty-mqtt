@@ -140,7 +140,7 @@ final class MqttClientImpl implements MqttClient {
             if (reconnect) {
                 this.reconnect = true;
             }
-            eventLoop.schedule((Runnable) () -> connect(host, port, reconnect), clientConfig.getRetryInterval(), TimeUnit.MILLISECONDS);
+            eventLoop.schedule((Runnable) () -> connect(host, port, reconnect), clientConfig.getRetryInterval(), TimeUnit.SECONDS);
         }
     }
 
