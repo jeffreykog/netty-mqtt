@@ -3,7 +3,7 @@
 
     <groupId>nl.jk5.netty-mqtt</groupId>
     <artifactId>netty-mqtt</artifactId>
-    <version>2.0.0TB</version>
+    <version>2.0.1TB</version>
     <packaging>jar</packaging>
 
     <name>Netty MQTT Client</name>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <version>21.0</version>
         </dependency>
     </dependencies>
 
